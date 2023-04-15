@@ -7,6 +7,7 @@ import com.nimofy.nasaimagestealer.entities.Camera;
 import com.nimofy.nasaimagestealer.entities.Picture;
 import com.nimofy.nasaimagestealer.repo.CameraRepository;
 import com.nimofy.nasaimagestealer.repo.PictureRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,10 +17,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,51 +39,44 @@ public class NasaService {
     public void getPicturesData(int sol) {
         var pictureUrl = buildURl(sol);
 
-        var photos = restTemplate.getForEntity(pictureUrl, NasaPhotos.class).getBody();
-        assert photos != null;
-        var cameraListNasaPhotoMap = buildMapData(photos);
+        var photosBody = restTemplate.getForObject(pictureUrl, NasaPhotos.class);
+        Objects.requireNonNull(photosBody);
+        var cameraListNasaPhotoMap = buildMapData(photosBody);
         saveDataToDataBase(cameraListNasaPhotoMap);
     }
 
     private Map<NasaVideoCamera, List<NasaPhoto>> buildMapData(NasaPhotos nasaPhotos) {
-        Map<NasaVideoCamera, List<NasaPhoto>> cameraListMap = new ConcurrentHashMap<>();
-        nasaPhotos.photos().forEach(nasaPhoto -> cameraListMap.computeIfAbsent(nasaPhoto.camera(), k -> new ArrayList<>())
-                .add(nasaPhoto));
-        return cameraListMap;
+        return nasaPhotos.photos()
+                .stream()
+                .collect(Collectors.groupingBy(NasaPhoto::camera, Collectors.toList()));
     }
-
-    @Transactional
     public void saveDataToDataBase(Map<NasaVideoCamera, List<NasaPhoto>> cameraListNasaPhotoMap) {
         cameraListNasaPhotoMap.forEach((nasaVideoCamera, nasaPhotos) -> {
-            var nasaCamera = findCamera(nasaVideoCamera.id());
-            if (nasaCamera.getCameraNasaId() == null) {
-                nasaCamera.setCameraNasaId(nasaVideoCamera.id());
-                nasaCamera.setName(nasaVideoCamera.name());
-            }
+            var nasaCamera = findCamera(nasaVideoCamera);
+            saveNasaPhotos(nasaPhotos, nasaCamera);
+        });
+    }
 
-            nasaPhotos.forEach(nasaPhoto -> {
-                if (!pictureRepository.pictureExistsByNasaId(nasaPhoto.id())) {
-                    Picture picture = new Picture();
-
-                    picture.setPictureNasaId(nasaPhoto.id());
-                    nasaCamera.addPicture(picture);
-                    picture.setCamera(nasaCamera);
-
-                    picture.setImgSrc(nasaPhoto.img_src());
-                }
-            });
-            if (saveCameraOrPictureList(nasaCamera)) {
-                cameraRepository.saveAndFlush(nasaCamera);
+    private Camera findCamera(NasaVideoCamera nasaVideoCamera) {
+        return cameraRepository.findCameraByCameraNasaId(nasaVideoCamera.id())
+                .orElseGet(() -> cameraRepository.save(getNewCamera(nasaVideoCamera)));
+    }
+    private void saveNasaPhotos(List<NasaPhoto> nasaPhotos, Camera nasaCamera) {
+        nasaPhotos.forEach(nasaPhoto -> {
+            if (!pictureRepository.pictureExistsByNasaId(nasaPhoto.id())){
+                Picture picture = new Picture();
+                picture.setPictureNasaId(nasaPhoto.id());
+                picture.setImgSrc(nasaPhoto.img_src());
+                nasaCamera.addPicture(picture);
             }
         });
     }
 
-    private Camera findCamera(Long nasaVideoCameraId) {
-        return cameraRepository.findCameraByCameraNasaId(nasaVideoCameraId).orElseGet(Camera::new);
-    }
-
-    private boolean saveCameraOrPictureList(Camera camera) {
-        return camera.getId() == null || camera.getPictures().size() >= 1;
+    private Camera getNewCamera(NasaVideoCamera nasaVideoCamera) {
+        var camera = new Camera();
+        camera.setCameraNasaId(nasaVideoCamera.id());
+        camera.setName(nasaVideoCamera.name());
+        return camera;
     }
 
     private URI buildURl(int sol) {

@@ -14,8 +14,7 @@ public class NasaApi {
     private final NasaService nasaService;
 
     @PostMapping("pictures/steal")
-    public ResponseEntity<Void> stealImage(@RequestBody SolRequest solRequest) {
+    public void stealImage(@RequestBody SolRequest solRequest) {
         nasaService.getPicturesData(solRequest.sol());
-        return ResponseEntity.ok().build();
     }
 }

@@ -26,8 +26,7 @@ public class Picture {
 
     @Column(name = "img_src")
     private String imgSrc;
-    @Column(name = "created_at")
-    @Builder.Default
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
 }

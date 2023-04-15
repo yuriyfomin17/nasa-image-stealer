@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode(of = "cameraNasaId")
 public class Camera {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
@@ -25,13 +27,12 @@ public class Camera {
     private Long cameraNasaId;
     @Column(name = "name")
     private String name;
-    @Column(name = "created_at")
-    @Builder.Default
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public void addPicture(Picture picture) {
-        pictures.add(picture);
         picture.setCamera(this);
+        pictures.add(picture);
 
     }
 
