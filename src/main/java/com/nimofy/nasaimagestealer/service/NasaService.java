@@ -61,7 +61,7 @@ public class NasaService {
                 .orElseGet(() -> cameraRepository.save(getNewCamera(nasaVideoCamera)));
     }
     private void saveNasaPhotos(List<NasaPhoto> nasaPhotos, Camera nasaCamera) {
-        nasaPhotos.forEach(nasaPhoto -> handleNasaPhoto(nasaCamera, nasaPhoto));
+        nasaPhotos.parallelStream().forEach(nasaPhoto -> handleNasaPhoto(nasaCamera, nasaPhoto));
     }
 
     private void handleNasaPhoto(Camera nasaCamera, NasaPhoto nasaPhoto) {
