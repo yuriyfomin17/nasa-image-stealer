@@ -7,7 +7,6 @@ import com.nimofy.nasaimagestealer.entities.Camera;
 import com.nimofy.nasaimagestealer.entities.Picture;
 import com.nimofy.nasaimagestealer.repo.CameraRepository;
 import com.nimofy.nasaimagestealer.repo.PictureRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +34,7 @@ public class NasaService {
 
     @Value("${nasa.api.key}")
     private String NASA_KEY;
-
+    @Transactional
     public void getPicturesData(int sol) {
         var pictureUrl = buildURl(sol);
 
@@ -66,7 +65,7 @@ public class NasaService {
     }
 
     private void handleNasaPhoto(Camera nasaCamera, NasaPhoto nasaPhoto) {
-        if (!pictureRepository.pictureExistsByNasaId(nasaPhoto.id())){
+        if (!pictureRepository.existsByPictureNasaId(nasaPhoto.id())){
             Picture picture = new Picture();
             picture.setPictureNasaId(nasaPhoto.id());
             picture.setImgSrc(nasaPhoto.img_src());
