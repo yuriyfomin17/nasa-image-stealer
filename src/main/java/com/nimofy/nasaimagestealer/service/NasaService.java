@@ -62,14 +62,16 @@ public class NasaService {
                 .orElseGet(() -> cameraRepository.save(getNewCamera(nasaVideoCamera)));
     }
     private void saveNasaPhotos(List<NasaPhoto> nasaPhotos, Camera nasaCamera) {
-        nasaPhotos.forEach(nasaPhoto -> {
-            if (!pictureRepository.pictureExistsByNasaId(nasaPhoto.id())){
-                Picture picture = new Picture();
-                picture.setPictureNasaId(nasaPhoto.id());
-                picture.setImgSrc(nasaPhoto.img_src());
-                nasaCamera.addPicture(picture);
-            }
-        });
+        nasaPhotos.forEach(nasaPhoto -> handleNasaPhoto(nasaCamera, nasaPhoto));
+    }
+
+    private void handleNasaPhoto(Camera nasaCamera, NasaPhoto nasaPhoto) {
+        if (!pictureRepository.pictureExistsByNasaId(nasaPhoto.id())){
+            Picture picture = new Picture();
+            picture.setPictureNasaId(nasaPhoto.id());
+            picture.setImgSrc(nasaPhoto.img_src());
+            nasaCamera.addPicture(picture);
+        }
     }
 
     private Camera getNewCamera(NasaVideoCamera nasaVideoCamera) {
