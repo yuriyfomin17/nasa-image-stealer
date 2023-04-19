@@ -21,7 +21,7 @@ public class Picture {
     @JoinColumn(name = "camera_id")
     private Camera camera;
 
-    @Column(name = "picture_nasa_id")
+    @Column(name = "picture_nasa_id", unique = true)
     private Long pictureNasaId;
 
     @Column(name = "img_src")

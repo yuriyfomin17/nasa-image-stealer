@@ -9,6 +9,7 @@ import com.nimofy.nasaimagestealer.repo.CameraRepository;
 import com.nimofy.nasaimagestealer.repo.PictureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +42,11 @@ public class NasaService {
         var photosBody = restTemplate.getForObject(pictureUrl, NasaPhotos.class);
         Objects.requireNonNull(photosBody);
         var cameraListNasaPhotoMap = buildMapData(photosBody);
-        saveDataToDataBase(cameraListNasaPhotoMap);
+        try {
+            saveDataToDataBase(cameraListNasaPhotoMap);
+        } catch (PSQLException e){
+            log.error(e.getMessage());
+        }
     }
 
     private Map<NasaVideoCamera, List<NasaPhoto>> buildMapData(NasaPhotos nasaPhotos) {
@@ -49,7 +54,7 @@ public class NasaService {
                 .stream()
                 .collect(Collectors.groupingBy(NasaPhoto::camera, Collectors.toList()));
     }
-    public void saveDataToDataBase(Map<NasaVideoCamera, List<NasaPhoto>> cameraListNasaPhotoMap) {
+    public void saveDataToDataBase(Map<NasaVideoCamera, List<NasaPhoto>> cameraListNasaPhotoMap) throws PSQLException {
         cameraListNasaPhotoMap.forEach((nasaVideoCamera, nasaPhotos) -> {
             var nasaCamera = findCamera(nasaVideoCamera);
             saveNasaPhotos(nasaPhotos, nasaCamera);
@@ -61,16 +66,14 @@ public class NasaService {
                 .orElseGet(() -> cameraRepository.save(getNewCamera(nasaVideoCamera)));
     }
     private void saveNasaPhotos(List<NasaPhoto> nasaPhotos, Camera nasaCamera) {
-        nasaPhotos.parallelStream().forEach(nasaPhoto -> handleNasaPhoto(nasaCamera, nasaPhoto));
+        nasaPhotos.forEach(nasaPhoto -> handleNasaPhoto(nasaCamera, nasaPhoto));
     }
 
     private void handleNasaPhoto(Camera nasaCamera, NasaPhoto nasaPhoto) {
-        if (!pictureRepository.existsByPictureNasaId(nasaPhoto.id())){
-            Picture picture = new Picture();
-            picture.setPictureNasaId(nasaPhoto.id());
-            picture.setImgSrc(nasaPhoto.img_src());
-            nasaCamera.addPicture(picture);
-        }
+        Picture picture = new Picture();
+        picture.setPictureNasaId(nasaPhoto.id());
+        picture.setImgSrc(nasaPhoto.img_src());
+        nasaCamera.addPicture(picture);
     }
 
     private Camera getNewCamera(NasaVideoCamera nasaVideoCamera) {
