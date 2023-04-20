@@ -6,7 +6,6 @@ import com.nimofy.nasaimagestealer.dto.NasaVideoCamera;
 import com.nimofy.nasaimagestealer.entities.Camera;
 import com.nimofy.nasaimagestealer.entities.Picture;
 import com.nimofy.nasaimagestealer.repo.CameraRepository;
-import com.nimofy.nasaimagestealer.repo.PictureRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLException;
@@ -29,7 +28,6 @@ public class NasaService {
 
     private final RestTemplate restTemplate;
     private final CameraRepository cameraRepository;
-    private final PictureRepository pictureRepository;
     @Value("${nasa.api.url}")
     private String NASA_URL;
 
